@@ -176,15 +176,19 @@ echo; echo "File types to import (NEMO_SAVED_FILES) : ${NEMO_SAVED_FILES}"; echo
 
 if [ ${ISTAGE} -eq 1 ]; then
     # List of CDFTOOLS executables needed for the diagnostics:
-    L_EXEC="cdfmaxmoc.x cdfmoc.x cdfvT.x cdftransportiz.x cdficediags.x cdfmhst.x cdfsigtrp.x"
-    for ex in ${L_EXEC}; do check_if_file cdftools_light/bin/${ex} "Compile CDFTOOLS executables!"; done
+    L_EXEC="cdfmaxmoc cdfmoc cdfvT cdftransport cdficediags cdfmhst"; # cdftransig_xy3d"
+    for ex in ${L_EXEC}; do check_if_file ${CDFTOOLS_HOME}/bin/${ex} "Compile CDFTOOLS executables!"; done
 fi
 
 
-# Need to be consistent with the netcdf installation upon which cdftools_light was compiled:
-export NCDF_DIR=`cat cdftools_light/make.macro | grep ^NCDF_DIR | cut -d = -f2 | sed -e s/' '//g`
-echo ; echo "NCDF_DIR = ${NCDF_DIR}"; echo
-export LD_LIBRARY_PATH=${NCDF_DIR}/lib:${LD_LIBRARY_PATH}
+# Need to be consistent with the netcdf installation upon which CDFTOOLS_HOME was compiled:
+export HDF5_HOME=`cat ${CDFTOOLS_HOME}/src/make.macro | grep ^HDF5_HOME | cut -d = -f2 | sed -e s/' '//g`
+export NETCDF_HOME=`cat ${CDFTOOLS_HOME}/src/make.macro | grep ^NETCDF_HOME | cut -d = -f2 | sed -e s/' '//g`
+
+echo ; echo "NETCDF_HOME = ${NETCDF_HOME}"
+echo ; echo "HDF5_HOME = ${HDF5_HOME}"; echo
+export LD_LIBRARY_PATH=${NETCDF_HOME}/lib:${HDF5_HOME}/lib:${LD_LIBRARY_PATH}
+
 
 # Exporting some variables needed by the python scripts:
 export RUN=${RUN}
@@ -208,9 +212,15 @@ else
     export TMP_DIR=${DIAG_D}/tmp
 fi
 
+#lolo:debug:RM
+export TMP_DIR=~/tmp/tmp_${CONFRUN}
+export DIAG_D=~/tmp/${CONFRUN}
+#rm -rf ${TMP_DIR}
+#lolo.
+
 echo " IMPORTANT the TMP_DIR work directory is set to:" ; echo " ${TMP_DIR}"; echo ; sleep 2
 
-rm -rf ${TMP_DIR}
+
 mkdir -p ${DIAG_D} ${TMP_DIR}
 
 export NEMO_OUT_D=`echo ${NEMO_OUT_STRCT} | sed -e "s|<ORCA>|${ORCA}|g" -e "s|<RUN>|${RUN}|g"`
@@ -372,9 +382,10 @@ if [ ! -f ./mesh_mask.nc ]; then
         cp -L ${MM_FILE} mesh_mask.nc
     fi
 fi
+for ff in mask mesh_zgr mesh_hgr; do ln -sf mesh_mask.nc ${ff}.nc; done
 
 #Fix, in case old nemo (prior version 3.6) must rename some metrics param:
-ca=""; ca=`${NCDF_DIR}/bin/ncdump -h mesh_mask.nc  | grep 'e3t('`
+ca=""; ca=`${NETCDF_HOME}/bin/ncdump -h mesh_mask.nc  | grep 'e3t('`
 if [ ! "${ca}" = "" ]; then
     echo "Renaming some metrics into mesh_mask.nc !!!"
     ncrename -v e3t_0,e3t_1d -v e3w_0,e3w_1d -v gdept_0,gdept_1d -v gdepw_0,gdepw_1d  mesh_mask.nc
@@ -395,11 +406,6 @@ export BM_FILE=${TMP_DIR}/new_maskglo.nc
 
 
 
-
-if [ ${ISTAGE} -eq 1 ]; then
-    # Importing cdftools executables:
-    for ex in ${L_EXEC}; do cp -L ${BARAKUDA_ROOT}/cdftools_light/bin/${ex} . ; done
-fi
 
 sgz=""
 
@@ -514,7 +520,7 @@ while ${lcontinue}; do
                         if [ "${sgz}" = "4"   ]; then
                             if ${L_CONV2NC3}; then
                                 echo "Need to convert back to netcdf3!"; echo "nccopy -k classic ${f2i}4 ${f2i}"
-                                ${NCDF_DIR}/bin/nccopy -k classic ${f2i}4 ${f2i} ;  rm ${f2i}4
+                                ${NETCDF_HOME}/bin/nccopy -k classic ${f2i}4 ${f2i} ;  rm ${f2i}4
                             else
                                 echo "mv ./${f2i}4 ./${f2i}"
                                 mv ./${f2i}4 ./${f2i}
@@ -622,8 +628,8 @@ while ${lcontinue}; do
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~
         if [ ${i_do_trsp} -gt 0 ] || [ ${i_do_mht} -eq 1 ]; then
             if [ ! -f ${fvt} ]; then
-                echo; echo; echo " *** doing: ./cdfvT.x ${CPREF}${TTAG_ann} ${NN_T} ${NN_S} ${NN_U} ${NN_V} ${NN_U_EIV} ${NN_V_EIV}"
-                ./cdfvT.x ${CPREF}${TTAG_ann} ${NN_T} ${NN_S} ${NN_U} ${NN_V} ${NN_U_EIV} ${NN_V_EIV}
+                echo; echo; echo " *** doing: ${CDFTOOLS_HOME}/bin/cdfvT ${CPREF}${TTAG_ann} ${NN_T} ${NN_S} ${NN_U} ${NN_V} ${NN_U_EIV} ${NN_V_EIV}"
+                ${CDFTOOLS_HOME}/bin/cdfvT ${CPREF}${TTAG_ann} ${NN_T} ${NN_S} ${NN_U} ${NN_V} ${NN_U_EIV} ${NN_V_EIV}
                 echo "Done!"; echo; echo
             fi
         fi
@@ -654,20 +660,20 @@ while ${lcontinue}; do
                 echo "AMOC => specify latitude bands with variable LMOCLAT into the config file!!!"; exit
             fi
 
-            echo " *** doing: ./cdfmoc.x ${fv} ${NN_V} ${NN_V_EIV}"
-            ./cdfmoc.x ${fv} ${NN_V} ${NN_V_EIV}
+            echo " *** doing: ${CDFTOOLS_HOME}/bin/cdfmoc ${fv} ${NN_V} ${NN_V_EIV}"
+            ${CDFTOOLS_HOME}/bin/cdfmoc ${fv} ${NN_V} ${NN_V_EIV}
             echo "Done!"; echo; echo; echo
 
-            for clat in ${LMOCLAT}; do
-                cslat=`echo ${clat} | sed -e s/'-'/' '/g`
-                echo "  *** ./cdfmaxmoc.x moc.nc atl ${cslat} 500 1500 ${jyear} ${DIAG_D}"
-                ./cdfmaxmoc.x moc.nc atl ${cslat} 500 1500 ${jyear} ${DIAG_D}
-                echo "Done!"; echo
-            done
+            #for clat in ${LMOCLAT}; do
+            #    cslat=`echo ${clat} | sed -e s/'-'/' '/g`
+            #    echo "  *** ${CDFTOOLS_HOME}/bin/cdfmaxmoc moc.nc atl ${cslat} 500 1500 ${jyear} ${DIAG_D}"
+            #    ${CDFTOOLS_HOME}/bin/cdfmaxmoc moc.nc atl ${cslat} 500 1500 ${jyear} ${DIAG_D}
+            #    echo "Done!"; echo
+            #done
 
         fi
 
-
+        exit ; #lolo
 
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -693,8 +699,8 @@ while ${lcontinue}; do
             if [ ! -f ${fvt} ]; then
                 echo "PROBLEM: file ${fvt} is not here, skipping transport section!"
             else
-                echo " *** doing: ./cdftransportiz.x ${CPREF}${TTAG_ann} ${NN_U} ${NN_V} ${NN_U_EIV} ${NN_V_EIV} ${jyear} ${DIAG_D} ${z1_trsp} ${z2_trsp}"
-                ./cdftransportiz.x ${CPREF}${TTAG_ann} ${NN_U} ${NN_V} ${NN_U_EIV} ${NN_V_EIV} ${jyear} ${DIAG_D} ${z1_trsp} ${z2_trsp}
+                echo " *** doing: ${CDFTOOLS_HOME}/bin/cdftransport ${CPREF}${TTAG_ann} ${NN_U} ${NN_V} ${NN_U_EIV} ${NN_V_EIV} ${jyear} ${DIAG_D} ${z1_trsp} ${z2_trsp}"
+                ${CDFTOOLS_HOME}/bin/cdftransport ${CPREF}${TTAG_ann} ${NN_U} ${NN_V} ${NN_U_EIV} ${NN_V_EIV} ${jyear} ${DIAG_D} ${z1_trsp} ${z2_trsp}
                 echo "Done!"; echo; echo
 
                 rm -f *.tmp broken_line_*
@@ -742,8 +748,8 @@ while ${lcontinue}; do
                 echo "PROBLEM: file ${fvt} is not here, skipping meridional transports section"
             else
                 rm -f merid_heat_trp.dat merid_salt_trp.dat
-                echo " *** doing: ./cdfmhst.x ${fvt} ${fo} ${jyear}"
-                ./cdfmhst.x ${fvt} ${fo} ${jyear}
+                echo " *** doing: ${CDFTOOLS_HOME}/bin/cdfmhst ${fvt} ${fo} ${jyear}"
+                ${CDFTOOLS_HOME}/bin/cdfmhst ${fvt} ${fo} ${jyear}
                 echo "Done!"; echo; echo; echo
             fi
 
@@ -796,8 +802,8 @@ while ${lcontinue}; do
                 fi
             fi
 
-            echo " *** doing: ./cdfsigtrp.x ${ft} ${fu} ${fv} 24.8 28.6 19 ${jyear} ${DIAG_D}  ${NN_T} ${NN_S} ${NN_U} ${NN_V}"; echo
-            ./cdfsigtrp.x ${ft} ${fu} ${fv} 24.8 28.6 19 ${jyear} ${DIAG_D} ${NN_T} ${NN_S} ${NN_U} ${NN_V}
+            echo " *** doing: ${CDFTOOLS_HOME}/bin/cdftransig_xy3d ${ft} ${fu} ${fv} 24.8 28.6 19 ${jyear} ${DIAG_D}  ${NN_T} ${NN_S} ${NN_U} ${NN_V}"; echo
+            ${CDFTOOLS_HOME}/bin/cdftransig_xy3d ${ft} ${fu} ${fv} 24.8 28.6 19 ${jyear} ${DIAG_D} ${NN_T} ${NN_S} ${NN_U} ${NN_V}
             echo "Done!"; echo
 
         fi
@@ -856,8 +862,8 @@ while ${lcontinue}; do
                 ncrename -v ${NN_ICET},ice_thic tmp_ice.nc
             fi
 
-            echo " *** doing: ./cdficediags.x tmp_ice.nc ${jyear} ${DIAG_D} ${coic}"
-            ./cdficediags.x tmp_ice.nc ${jyear} ${DIAG_D} ${coic}
+            echo " *** doing: ${CDFTOOLS_HOME}/bin/cdficediags tmp_ice.nc ${jyear} ${DIAG_D} ${coic}"
+            ${CDFTOOLS_HOME}/bin/cdficediags tmp_ice.nc ${jyear} ${DIAG_D} ${coic}
             echo "Done!"; echo; echo; echo
             rm -f tmp_ice.nc
 

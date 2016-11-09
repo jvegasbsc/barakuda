@@ -27,6 +27,9 @@ export DIAG_DIR="${STORE_DIR}/barakuda/${CONF}_ece32"
 module add NCO/4.2.3
 module add PYTHON/2.7.3
 
+export CDFTOOLS_HOME="/home/bsc32/bsc32325/DEV/CDFTOOLS"
+
+
 # Is it an ec-earth run?
 export ece_run=1 ; # 0 => not an EC-Earth run, it's a "pure" ocean-only NEMO run done from traditional NEMO setup
 #                  # 1 => it's an OCEAN-ONLY EC-Earth run done from a EC-Earth setup
@@ -38,7 +41,7 @@ export Y_INI_EC=1990 ;    # initial year if ec-earth run...
 
 
 # List of suffixed of files that have been saved by NEMO and that are needed for the diags:
-export NEMO_SAVED_FILES="grid_T grid_U grid_V icemod SBC"
+export NEMO_SAVED_FILES="grid_T grid_U grid_V icemod"
 
 # Directory structure in which to find NEMO output file (use <ORCA> and <RUN>):
 export NEMO_OUT_STRCT="${STORE_DIR}/run_ece/<RUN>/output/nemo"
@@ -142,10 +145,10 @@ export FIG_FORM="png"
 
 
 # Basic 3D and surface averages:
-i_do_mean=1
+i_do_mean=0
 
 # FreshWater fluxes at the surface spatially averaged over the ocean, E-P-R, E-P, R, P, ...
-#i_do_fwf=1
+i_do_fwf=0
 
 # AMOC:
 i_do_amoc=1
@@ -153,23 +156,23 @@ export LMOCLAT="20-23 30-33 40-43 45-48 50-53" ; # List of latitude bands to loo
 
 
 # Transport of mass, heat and salt through specified sections (into TRANSPORT_SECTION_FILE):
-i_do_trsp=2  ; # transport of mass, heat and salt through specified sections
+i_do_trsp=0  ; # transport of mass, heat and salt through specified sections
 #              # i_do_trsp=2 => treat also different depths range!
 z1_trsp=100  ; # first  depth: i_do_trsp must be set to 2
 z2_trsp=1000 ; # second depth: i_do_trsp must be set to 2
 
 
 # meridional heat/salt transport (advective)
-i_do_mht=1
+i_do_mht=0
 
 # Transport by sigma class
-i_do_sigt=1
+i_do_sigt=0
 
 # sea-ice diags
-i_do_ice=1  ; # Sea-ice diags
+i_do_ice=0  ; # Sea-ice diags
 
 
-i_do_bb=1   ; # Budget and other stuffs on a given rectangular box!
+i_do_bb=0   ; # Budget and other stuffs on a given rectangular box!
 #             # => needs file FILE_DEF_BOXES !!!
 # => produces time-series f(t)  (mean of 2D fields)
 
@@ -179,7 +182,7 @@ i_do_ssx_box=0 ; # zoom on given boxes (+spatially-averaged values) for surface 
 
 
 # Vertical profiles on of box-averaged as a function of time...
-i_do_box_TS_z=1 ; # do sigma vert. profiles on given boxes... # 1 => no figures, 2 => figures
+i_do_box_TS_z=0 ; # do sigma vert. profiles on given boxes... # 1 => no figures, 2 => figures
 #                 # => needs file FILE_DEF_BOXES !!!
 # => produces time-series f(t,z)
 
